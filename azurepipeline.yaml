@@ -1,0 +1,45 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  AWS_REGION: "us-east-1"
+  VPC_CIDR: "10.0.0.0/16"
+  SUBNET_CIDR: "10.0.1.0/24"
+  INSTANCE_TYPE: "t2.micro"
+  S3_BUCKET_NAME: "my-devops-bucket"
+
+steps:
+  # Install Terraform
+  - script: |
+      sudo apt-get update
+      sudo apt-get install -y wget unzip
+      wget https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
+      unzip terraform_1.5.0_linux_amd64.zip
+      sudo mv terraform /usr/local/bin/
+      terraform -version
+    displayName: 'Install Terraform'
+
+  # Configure AWS Credentials
+  - script: |
+      aws configure set aws_access_key_id $(AWS_ACCESS_KEY)
+      aws configure set aws_secret_access_key $(AWS_SECRET_KEY)
+      aws configure set region $(AWS_REGION)
+    displayName: 'Configure AWS Credentials'
+
+  # Initialize Terraform
+  - script: |
+      terraform init
+    displayName: 'Initialize Terraform'
+
+  # Terraform Plan
+  - script: |
+      terraform plan -var="aws_region=$(AWS_REGION)" -var="vpc_cidr=$(VPC_CIDR)" -var="subnet_cidr=$(SUBNET_CIDR)" -var="instance_type=$(INSTANCE_TYPE)" -var="s3_bucket_name=$(S3_BUCKET_NAME)" -out=tfplan
+    displayName: 'Terraform Plan'
+
+  # Terraform Apply
+  - script: |
+      terraform apply -auto-approve tfplan
+    displayName: 'Terraform Apply'
